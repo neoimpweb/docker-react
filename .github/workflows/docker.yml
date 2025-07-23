@@ -36,4 +36,4 @@ jobs:
       
     - name: Run Docker container
       run: |
-        docker run -d --name eoimpweb/docker-react-container -p 80:80 neoimpweb/docker-react-image
+        docker run -d -p 80:80 --name neoimpweb/docker-react-container neoimpweb/docker-react-image
