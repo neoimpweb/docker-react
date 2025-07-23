@@ -31,9 +31,9 @@ jobs:
 
     - name: Stop the old one
       run: | 
-        docker stop neoimpweb/docker-react-container || true
-        docker rm neoimpweb/docker-react-container || true
+        docker stop docker-react-container || true
+        docker rm docker-react-container || true
       
     - name: Run Docker container
       run: |
-        docker run -d -p 80:80 --name neoimpweb/docker-react-container neoimpweb/docker-react-image
+        docker run -d -p 80:80 --name docker-react-container neoimpweb/docker-react-image
