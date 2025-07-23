@@ -21,13 +21,15 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Test the Docker image
+      run: |
+        docker build -f Dockerfile.dev .
+        docker run -e CI=true neoimpweb/docker-react-image npm run test
+
     - name: Build the Docker image
       run: |
         docker build -t neoimpweb/docker-react-image .
-    
-    - name: Test the Docker image
-      run: | 
-        docker run -e CI=true neoimpweb/docker-react-image npm run test
 
     - name: Stop the old one
       run: | 
