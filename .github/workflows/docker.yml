@@ -6,21 +6,60 @@ on:
   pull_request:
     branches: [ "master" ]
 
+env:
+  ## DockerHub
+  # DOCKER_HUB_USERNAME: woohobi
+  # AWS & Elastic Bean Stalk
+  AWS_REGION: ap-northeast-1
+  EB_APPLICATION_NAME: Docker
+  EB_ENVIRONMENT_NAME: Docker-env
+  S3_DOWNLOAD_BUCKET: elasticbeanstalk-ap-northeast-1-365292474125
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build -t neoimpweb/docker-react -f Dockerfile.dev .
+      run: |
+        docker build -t neoimpweb/docker-react -f Dockerfile.dev .
     - name: Test the Docker image
-      run: docker run -e CI=true neoimpweb/docker-react npm run test
+      run: | 
+        docker run -e CI=true neoimpweb/docker-react npm run test
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
     
-    # # Access Key와 Secret Access Key를 통해 권한을 확인한다.
-    # # 아래 코드에 Access Key와 Secret Key를 직접 작성하지 않는다.
-    # - name: Configure AWS credentials
-    #   uses: aws-actions/configure-aws-credentials@v1
-    #   with:
-    #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }} # 등록한 Github Secret이 자동으로 불려온다.
-    #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} # 등록한 Github Secret이 자동으로 불려온다.
-    #     aws-region: ap-northeast-1
+    - name: Login to Amazon ECR
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
+        aws ecr get-login-password | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+    
+    - name: Create Dockerrun.aws.json
+      run: |
+        cat > Dockerrun.aws.json <<EOF
+        {
+          "AWSEBDockerrunVersion": "1",
+          "Image": {
+            "Name": "${ECR_URI}:${IMAGE_TAG}",
+            "Update": "true"
+          },
+          "Ports": [
+            {
+              "ContainerPort": 80
+            }
+          ]
+        }
+        EOF
+
+    - name: Zip deployment package
+      run: zip deploy.zip Dockerrun.aws.json    
+
+    - name: Upload to S3
+      run: |
+        aws s3 cp deploy.zip s3://$S3_BUCKET/deploy-${IMAGE_TAG}.zip

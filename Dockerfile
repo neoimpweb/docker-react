@@ -13,5 +13,5 @@ RUN npm run build
 
 # 2nd Phase: Serve the React app with Nginx
 FROM nginx
-
+EXPOSE 80
 COPY --from=builder /app/build /usr/share/nginx/html
