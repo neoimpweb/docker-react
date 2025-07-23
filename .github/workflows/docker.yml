@@ -6,60 +6,34 @@ on:
   pull_request:
     branches: [ "master" ]
 
-env:
-  ## DockerHub
-  # DOCKER_HUB_USERNAME: woohobi
-  # AWS & Elastic Bean Stalk
-  AWS_REGION: ap-northeast-1
-  EB_APPLICATION_NAME: Docker
-  EB_ENVIRONMENT_NAME: Docker-env
-  S3_DOWNLOAD_BUCKET: elasticbeanstalk-ap-northeast-1-365292474125
+# env:
+#   ## DockerHub
+#   # DOCKER_HUB_USERNAME: woohobi
+#   # AWS & Elastic Bean Stalk
+#   AWS_REGION: ap-northeast-1
+#   EB_APPLICATION_NAME: Docker
+#   EB_ENVIRONMENT_NAME: Docker-env
+#   S3_DOWNLOAD_BUCKET: elasticbeanstalk-ap-northeast-1-365292474125
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: [self-hosted]
+    
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
       run: |
-        docker build -t neoimpweb/docker-react -f Dockerfile.dev .
+        docker build -t neoimpweb/docker-react-image -f Dockerfile.dev .
+    
     - name: Test the Docker image
       run: | 
-        docker run -e CI=true neoimpweb/docker-react npm run test
+        docker run -e CI=true neoimpweb/docker-react-image npm run test
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-    
-    - name: Login to Amazon ECR
+    - name: Stop the old one
+      run: | 
+        docker stop neoimpweb/docker-react-container || true
+        docker rm neoimpweb/docker-react-container || true
+      
+    - name: Run Docker container
       run: |
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
-        aws ecr get-login-password | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-    
-    # - name: Create Dockerrun.aws.json
-    #   run: |
-    #     cat > Dockerrun.aws.json <<EOF
-    #     {
-    #       "AWSEBDockerrunVersion": "1",
-    #       "Image": {
-    #         "Name": "${ECR_URI}:${IMAGE_TAG}",
-    #         "Update": "true"
-    #       },
-    #       "Ports": [
-    #         {
-    #           "ContainerPort": 80
-    #         }
-    #       ]
-    #     }
-    #     EOF
-
-    # - name: Zip deployment package
-    #   run: zip deploy.zip Dockerrun.aws.json    
-
-    # - name: Upload to S3
-    #   run: |
-    #     aws s3 cp deploy.zip s3://$S3_BUCKET/deploy-${IMAGE_TAG}.zip
+        docker run -d --name eoimpweb/docker-react-container -p 80:80 neoimpweb/docker-react-image
