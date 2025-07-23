@@ -40,26 +40,26 @@ jobs:
         echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
         aws ecr get-login-password | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
     
-    - name: Create Dockerrun.aws.json
-      run: |
-        cat > Dockerrun.aws.json <<EOF
-        {
-          "AWSEBDockerrunVersion": "1",
-          "Image": {
-            "Name": "${ECR_URI}:${IMAGE_TAG}",
-            "Update": "true"
-          },
-          "Ports": [
-            {
-              "ContainerPort": 80
-            }
-          ]
-        }
-        EOF
+    # - name: Create Dockerrun.aws.json
+    #   run: |
+    #     cat > Dockerrun.aws.json <<EOF
+    #     {
+    #       "AWSEBDockerrunVersion": "1",
+    #       "Image": {
+    #         "Name": "${ECR_URI}:${IMAGE_TAG}",
+    #         "Update": "true"
+    #       },
+    #       "Ports": [
+    #         {
+    #           "ContainerPort": 80
+    #         }
+    #       ]
+    #     }
+    #     EOF
 
-    - name: Zip deployment package
-      run: zip deploy.zip Dockerrun.aws.json    
+    # - name: Zip deployment package
+    #   run: zip deploy.zip Dockerrun.aws.json    
 
-    - name: Upload to S3
-      run: |
-        aws s3 cp deploy.zip s3://$S3_BUCKET/deploy-${IMAGE_TAG}.zip
+    # - name: Upload to S3
+    #   run: |
+    #     aws s3 cp deploy.zip s3://$S3_BUCKET/deploy-${IMAGE_TAG}.zip
